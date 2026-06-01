@@ -1,2 +1,10 @@
 /.idea
 /build
+
+# Conan local-build artifacts
+CMakeUserPresets.json
+conanbuild*
+conanrun*
+deactivate_conan*
+/test_package/build
+/test_package/metadata

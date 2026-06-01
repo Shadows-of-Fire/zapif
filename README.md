@@ -38,9 +38,44 @@ Zapif uses CMake to build, and supports both Linux and Windows. The basic depend
 
 Building for windows still requires flex and bison. The suggested distribution is [winflexbison](https://github.com/lexxmark/winflexbison) 2.5.25 or higher.
 
+Alternatively, [Conan](https://conan.io) can provide flex, bison, and CMake automatically — see [Building with Conan](#building-with-conan) — leaving a C++11 compiler as the only tool you install yourself.
+
 # Building `zapif`
 
-Run the following comments in the `zapif` directory (this one).
+You can build either with [Conan](https://conan.io) — which provisions flex, bison,
+and CMake for you — or directly with CMake if you already have those tools installed.
+
+## Building with Conan
+
+Conan installs the required flex, bison, and CMake versions automatically (and uses
+`winflexbison` on Windows), so the only things you provide yourself are a C++11
+compiler and Conan 2:
+
+```sh
+pip install conan       # or: pipx install conan
+conan profile detect    # first time only; detects your compiler
+```
+
+Then, from the `zapif` directory (this one):
+
+```sh
+conan install . --build=missing
+conan build .
+```
+
+The executable is written to `build/Release/zapif` (or `build/<config>/zapif`).
+
+To build, package, and smoke-test `zapif` as a Conan package — for example to reuse
+it as a build tool in another project via `tool_requires` — run:
+
+```sh
+conan create .
+```
+
+## Building directly with CMake
+
+If you already have flex, bison, and CMake 4.0 or higher installed, run the following
+commands in the `zapif` directory (this one):
 
 ```sh
 cmake . -B build

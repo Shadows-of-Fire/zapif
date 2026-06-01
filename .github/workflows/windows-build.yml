@@ -79,3 +79,58 @@ jobs:
         name: zapif-windows-${{ matrix.build_type }}
         path: ${{ steps.strings.outputs.build-install-dir }}\bin\zapif.exe
         if-no-files-found: error
+
+  windows-conan:
+    # Mirrors the `build` job, but builds and packages with Conan instead of
+    # invoking CMake directly. Conan provisions winflexbison and CMake (>= 4.0)
+    # itself via tool_requires, so the manual CMake/WinFlexBison setup isn't needed.
+    # Produces no artifacts; this just exercises the Conan recipe.
+    runs-on: windows-latest
+
+    strategy:
+      fail-fast: false
+
+      # Check both release and debug builds.
+      matrix:
+        build_type: [Release, Debug]
+        c_compiler: [cl]
+        include:
+          - os: windows-latest
+            c_compiler: cl
+            cpp_compiler: cl
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.14'
+
+    - name: Install Conan
+      # `conan profile detect` auto-detects MSVC from the Visual Studio install.
+      run: |
+        pip install "conan==2.29.0"
+        conan profile detect --force
+
+    - name: Cache Conan packages
+      # Restores the built/downloaded tool packages (winflexbison, CMake) so they
+      # aren't fetched/rebuilt every run. Hashing conanfile.py busts the cache on
+      # a version bump.
+      uses: actions/cache@v4
+      with:
+        path: ~/.conan2
+        key: conan-${{ runner.os }}-${{ matrix.c_compiler }}-${{ hashFiles('conanfile.py') }}
+        restore-keys: |
+          conan-${{ runner.os }}-${{ matrix.c_compiler }}-
+
+    - name: Conan create
+      # Builds zapif (pulling winflexbison and CMake as build tools), then runs
+      # the test_package smoke test. --build=missing builds any deps lacking a
+      # prebuilt binary.
+      run: conan create . -s build_type=${{ matrix.build_type }} --build=missing
+
+    - name: Trim Conan cache
+      # Drop source/build/download folders so the post-run cache save keeps only
+      # the reusable package binaries.
+      run: conan cache clean "*"
