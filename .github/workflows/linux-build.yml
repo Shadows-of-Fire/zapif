@@ -30,7 +30,7 @@ jobs:
             cpp_compiler: clang++
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Update CMake
       # The linux container will be using CMake 3.31 by default, but we're using CMake 4.0 features.
@@ -78,7 +78,7 @@ jobs:
     - name: Install
       run: cmake --install ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }} --prefix ${{ steps.strings.outputs.build-install-dir }}
 
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v5
       with:
         name: zapif-linux-${{ matrix.c_compiler }}-${{ matrix.build_type }}
         path: ${{ steps.strings.outputs.build-install-dir }}/bin/zapif
@@ -112,7 +112,7 @@ jobs:
       CXX: ${{ matrix.cpp_compiler }}
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Set up Python
       uses: actions/setup-python@v5
@@ -128,7 +128,7 @@ jobs:
       # Restores the built/downloaded tool packages (flex, bison, m4, CMake) so
       # they aren't rebuilt every run. Keyed by compiler since the tools are
       # built with it; hashing conanfile.py busts the cache on a version bump.
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ~/.conan2
         key: conan-${{ runner.os }}-${{ matrix.c_compiler }}-${{ hashFiles('conanfile.py') }}

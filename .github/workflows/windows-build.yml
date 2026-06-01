@@ -27,7 +27,7 @@ jobs:
             cpp_compiler: cl
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Update CMake
       # We need to use CMake 4.0 or higher, so we need to download it and stick it on the path.
@@ -74,7 +74,7 @@ jobs:
     - name: Install
       run: cmake --install ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }} --prefix ${{ steps.strings.outputs.build-install-dir }}
 
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v5
       with:
         name: zapif-windows-${{ matrix.build_type }}
         path: ${{ steps.strings.outputs.build-install-dir }}\bin\zapif.exe
@@ -100,7 +100,7 @@ jobs:
             cpp_compiler: cl
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Set up Python
       uses: actions/setup-python@v5
@@ -117,7 +117,7 @@ jobs:
       # Restores the built/downloaded tool packages (winflexbison, CMake) so they
       # aren't fetched/rebuilt every run. Hashing conanfile.py busts the cache on
       # a version bump.
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ~/.conan2
         key: conan-${{ runner.os }}-${{ matrix.c_compiler }}-${{ hashFiles('conanfile.py') }}
