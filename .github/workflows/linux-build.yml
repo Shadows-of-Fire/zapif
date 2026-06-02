@@ -30,7 +30,7 @@ jobs:
             cpp_compiler: clang++
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Update CMake
       # The linux container will be using CMake 3.31 by default, but we're using CMake 4.0 features.
@@ -78,8 +78,70 @@ jobs:
     - name: Install
       run: cmake --install ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }} --prefix ${{ steps.strings.outputs.build-install-dir }}
 
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v5
       with:
         name: zapif-linux-${{ matrix.c_compiler }}-${{ matrix.build_type }}
         path: ${{ steps.strings.outputs.build-install-dir }}/bin/zapif
         if-no-files-found: error
+
+  linux-conan:
+    # Mirrors the `build` job, but builds and packages with Conan instead of
+    # invoking CMake directly. Conan provisions flex, bison, and CMake (>= 4.0)
+    # itself via tool_requires, so the system CMake/flex/bison setup isn't needed.
+    # Produces no artifacts; this just exercises the Conan recipe.
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+
+      # Check both release and debug builds, as well as gcc and clang.
+      matrix:
+        build_type: [Release, Debug]
+        c_compiler: [gcc, clang]
+        include:
+          - os: ubuntu-latest
+            c_compiler: gcc
+            cpp_compiler: g++
+          - os: ubuntu-latest
+            c_compiler: clang
+            cpp_compiler: clang++
+
+    env:
+      # Picked up by `conan profile detect` to select the compiler.
+      CC: ${{ matrix.c_compiler }}
+      CXX: ${{ matrix.cpp_compiler }}
+
+    steps:
+    - uses: actions/checkout@v5
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.14'
+
+    - name: Install Conan
+      run: |
+        pip install "conan==2.29.0"
+        conan profile detect --force
+
+    - name: Cache Conan packages
+      # Restores the built/downloaded tool packages (flex, bison, m4, CMake) so
+      # they aren't rebuilt every run. Keyed by compiler since the tools are
+      # built with it; hashing conanfile.py busts the cache on a version bump.
+      uses: actions/cache@v5
+      with:
+        path: ~/.conan2
+        key: conan-${{ runner.os }}-${{ matrix.c_compiler }}-${{ hashFiles('conanfile.py') }}
+        restore-keys: |
+          conan-${{ runner.os }}-${{ matrix.c_compiler }}-
+
+    - name: Conan create
+      # Builds zapif (pulling flex, bison, and CMake as build tools), then runs
+      # the test_package smoke test. --build=missing builds any deps lacking a
+      # prebuilt binary.
+      run: conan create . -s build_type=${{ matrix.build_type }} --build=missing
+
+    - name: Trim Conan cache
+      # Drop source/build/download folders so the post-run cache save keeps only
+      # the reusable package binaries.
+      run: conan cache clean "*"
